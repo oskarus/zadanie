@@ -1,5 +1,5 @@
 # Base stage: Common image for all stages
-FROM --platform=$BUILDPLATFORM python:3.10.1-slim AS base
+FROM --platform=$BUILDPLATFORM python:3.10.13-slim AS base
 
 # Builder stage: Compile and prepare the application
 FROM base AS builder

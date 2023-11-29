@@ -1,0 +1,76 @@
+name: "pull-request-checks"
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - "app/**"
+      - "tests/**"
+      - ".github/workflows/pull-request-checks.yml"
+
+jobs:
+  setup:
+    name: Setup Dependencies
+    runs-on: ubuntu-latest
+    outputs:
+      cache-key: ${{ steps.cache-dependencies.outputs.cache-key }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11.6'
+
+      - name: Cache Python Dependencies
+        id: cache-dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+
+  lint:
+    name: Lint And Format Code
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10.13'
+
+      - name: Lint and format with Ruff
+        uses: chartboost/ruff-action@v1
+
+  test:
+    name: Run Tests
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10.13'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install httpx pytest pytest-cov pytest-html pytest-sugar pytest-json-report
+
+      - name: Run tests
+        run: pytest -v --doctest-modules --cov --html=reports/pytest/report.html
+
+      - name: Archive pytest coverage results
+        uses: actions/upload-artifact@v3
+        with:
+          name: pytest-coverage-report
+          path: reports/pytest/
