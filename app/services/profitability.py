@@ -8,7 +8,7 @@ from routers.models import LaptopDetails, PCDetails, PrinterDetails
 from decimal import Decimal
 import csv
 
-def calculate_profitability(product):
+async def calculate_profitability(product):
     if product.laptops:
         laptop = product.laptops[0]
         index = (laptop.ram + laptop.hd) / (laptop.price * laptop.speed)
@@ -24,14 +24,14 @@ def calculate_profitability(product):
 async def fetch_products(session):
     result = await session.execute(select(Product))
     return result.scalars().all()
-
+    
 class ProfitabilityService:
     @staticmethod
     async def get_products_profitability() -> JSONResponse:
         try:
             async with async_session() as session:
                 products = await fetch_products(session)
-                results = [calculate_profitability(product) for product in products if calculate_profitability(product)]
+                results = [await calculate_profitability(product) for product in products if product]
                 return JSONResponse(status_code=200, content={"profitability": results})
         except HTTPException as e:
             return JSONResponse(status_code=e.status_code, content={"error": e.detail})
@@ -50,7 +50,7 @@ class ProfitabilityService:
 
                     products = await fetch_products(session)
                     for product in products:
-                        info = calculate_profitability(product)
+                        info = await calculate_profitability(product)
                         if info:
                             writer.writerow([info['model'], info['type'], info['index']])
 
