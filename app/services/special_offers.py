@@ -25,9 +25,9 @@ def format_product_details(product) -> dict:
 def calculate_discounted_price(*prices, discount_factor=Decimal(0.9)) -> float:
     return float(sum(prices) * discount_factor)
 
-def create_special_offer(promotion_set, *products):
+def create_special_offer(special_offer_set, *products):
     return {
-        'promotion_set': promotion_set,
+        'special_offer_set': special_offer_set,
         'products': {product.__class__.__name__.lower(): format_product_details(product) for product in products},
         'discounted_price': calculate_discounted_price(*(product.price for product in products))
     }
@@ -80,7 +80,7 @@ class SpecialOfferService:
 
                 with open(csv_file_path, mode='w', newline='') as file:
                     writer = csv.writer(file)
-                    writer.writerow(['Promotion Set', 'Products', 'Products Details', 'Discounted Price'])
+                    writer.writerow(['Special Offer Set', 'Products', 'Products Details', 'Discounted Price'])
 
                     for special_offer in special_offers:
                         product_names = ', '.join(special_offer['products'].keys())
