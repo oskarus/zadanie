@@ -1,5 +1,13 @@
 from fastapi import HTTPException
 from fastapi.responses import JSONResponse
+from database import async_session
+from sqlalchemy import select
+from sqlalchemy.orm import joinedload
+from db.models import Laptop, PC, Printer
+from routers.model import LaptopDetails, PCDetails, PrinterDetails
+from decimal import Decimal
+import csv
+import os
 
 # Utility Functions
 def format_product_details(product) -> dict:
