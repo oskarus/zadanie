@@ -7,31 +7,39 @@ from db.models import Laptop, PC, Printer, Product
 from routers.models import LaptopDetails, PCDetails, PrinterDetails
 from decimal import Decimal
 import csv
+import os
 
-async def calculate_profitability(product):
-    if product.laptops:
-        laptop = product.laptops[0]
-        index = (laptop.ram + laptop.hd) / (laptop.price * laptop.speed)
-        return {"model": product.model, "type": "Laptop", "index": index}
-
-    elif product.personal_computers:
-        pc = product.personal_computers[0]
-        index = (pc.ram + pc.hd) / (pc.price * pc.speed)
-        return {"model": product.model, "type": "Personal Computer", "index": index}
-
-    return None
-
-async def fetch_products(session):
-    result = await session.execute(select(Product))
-    return result.scalars().all()
-    
 class ProfitabilityService:
+    @staticmethod
+    async def fetch_and_calculate_profitability(session) -> list:
+        results = []
+        # Fetch and calculate profitability for Laptops and PCs
+        laptops = await session.execute(select(Laptop).options(joinedload(Laptop.product)))
+        pcs = await session.execute(select(PC).options(joinedload(PC.product)))
+
+        for laptop in laptops.scalars():
+            profitability_index = ((laptop.ram + laptop.hd) / (laptop.price)) * laptop.speed
+            results.append({
+                "model": laptop.product.model,
+                "type": "Laptop",
+                "profitability_index": float(profitability_index)
+            })
+
+        for pc in pcs.scalars():
+            profitability_index = ((pc.ram + pc.hd) / (pc.price)) * pc.speed
+            results.append({
+                "model": pc.product.model,
+                "type": "PC",
+                "profitability_index": float(profitability_index)
+            })
+
+        return results
+
     @staticmethod
     async def get_products_profitability() -> JSONResponse:
         try:
             async with async_session() as session:
-                products = await fetch_products(session)
-                results = [await calculate_profitability(product) for product in products if product]
+                results = await ProfitabilityService.fetch_and_calculate_profitability(session)
                 return JSONResponse(status_code=200, content={"profitability": results})
         except HTTPException as e:
             return JSONResponse(status_code=e.status_code, content={"error": e.detail})
@@ -42,17 +50,15 @@ class ProfitabilityService:
     async def export_profitability_csv() -> JSONResponse:
         try:
             async with async_session() as session:
-                csv_file_path = "outputs/profitability.csv"
+                products_profitability = await ProfitabilityService.fetch_and_calculate_profitability(session)
 
-                with open(csv_file_path, mode='w', newline='', encoding='utf-8') as file:
+                csv_file_path = 'outputs/profitability.csv'
+                with open(csv_file_path, mode='w', newline='') as file:
                     writer = csv.writer(file)
                     writer.writerow(['Model', 'Type', 'Profitability Index'])
 
-                    products = await fetch_products(session)
-                    for product in products:
-                        info = await calculate_profitability(product)
-                        if info:
-                            writer.writerow([info['model'], info['type'], info['index']])
+                    for item in products_profitability:
+                        writer.writerow([item['model'], item['type'], item['profitability_index']])
 
                 return JSONResponse(content={"filepath": csv_file_path})
         except HTTPException as e:
