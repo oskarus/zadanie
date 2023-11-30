@@ -7,7 +7,6 @@ from db.models import Laptop, PC, Printer
 from routers.model import LaptopDetails, PCDetails, PrinterDetails
 from decimal import Decimal
 import csv
-import os
 
 # Utility Functions
 def format_product_details(product) -> dict:
