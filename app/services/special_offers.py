@@ -8,50 +8,54 @@ from routers.models import LaptopDetails, PCDetails, PrinterDetails
 from decimal import Decimal
 import csv
 
-# Utility Functions
-def format_product_details(product) -> dict:
-    detail_classes = {
-        Laptop: LaptopDetails,
-        PC: PCDetails,
-        Printer: PrinterDetails
-    }
+class UtilityService:
+    @staticmethod
+    def format_product_details(product) -> dict:
+        detail_classes = {
+            Laptop: LaptopDetails,
+            PC: PCDetails,
+            Printer: PrinterDetails
+        }
 
-    detail_class = detail_classes.get(type(product))
-    if detail_class:
-        return detail_class.parse_obj(product.__dict__).dict()
-    else:
-        return {}
+        detail_class = detail_classes.get(type(product))
+        if detail_class:
+            return detail_class.parse_obj(product.__dict__).dict()
+        else:
+            return {}
 
-def calculate_discounted_price(*prices, discount_factor=Decimal(0.9)) -> float:
-    return float(sum(prices) * discount_factor)
+    @staticmethod
+    def calculate_discounted_price(*prices, discount_factor=Decimal(0.9)) -> float:
+        return float(sum(prices) * discount_factor)
 
-def create_special_offer(special_offer_set, *products):
-    return {
-        'special_offer_set': special_offer_set,
-        'products': {product.__class__.__name__.lower(): format_product_details(product) for product in products},
-        'discounted_price': calculate_discounted_price(*(product.price for product in products))
-    }
+    @staticmethod
+    def create_special_offer(special_offer_set, *products):
+        return {
+            'special_offer_set': special_offer_set,
+            'products': {product.__class__.__name__.lower(): UtilityService.format_product_details(product) for product in products},
+            'discounted_price': UtilityService.calculate_discounted_price(*(product.price for product in products))
+        }
 
-# Database Operations
-async def fetch_single_product(session, model):
-    result = await session.execute(select(model).limit(1).options(joinedload(model.product)))
-    return result.scalar_one_or_none()
+class ProductRepository:
+    @staticmethod
+    async def fetch_single_product(session, model):
+        result = await session.execute(select(model).limit(1).options(joinedload(model.product)))
+        return result.scalar_one_or_none()
 
 class SpecialOfferService:
     @staticmethod
     async def get_products_special_offers() -> JSONResponse:
         try:
             async with async_session() as session:
-                pc = await fetch_single_product(session, PC)
-                laptop = await fetch_single_product(session, Laptop)
-                printer = await fetch_single_product(session, Printer)
+                pc = await ProductRepository.fetch_single_product(session, PC)
+                laptop = await ProductRepository.fetch_single_product(session, Laptop)
+                printer = await ProductRepository.fetch_single_product(session, Printer)
 
                 if not (pc and laptop and printer):
                     raise HTTPException(status_code=404, detail="Insufficient products for special offers")
 
                 special_offers = [
-                    create_special_offer('PC + Printer', pc, printer),
-                    create_special_offer('Laptop + Printer', laptop, printer)
+                    UtilityService.create_special_offer('PC + Printer', pc, printer),
+                    UtilityService.create_special_offer('Laptop + Printer', laptop, printer)
                 ]
 
                 return JSONResponse(status_code=200, content={"special_offers": special_offers})
@@ -64,16 +68,16 @@ class SpecialOfferService:
     async def export_special_offers_csv() -> JSONResponse:
         try:
             async with async_session() as session:
-                pc = await fetch_single_product(session, PC)
-                laptop = await fetch_single_product(session, Laptop)
-                printer = await fetch_single_product(session, Printer)
+                pc = await ProductRepository.fetch_single_product(session, PC)
+                laptop = await ProductRepository.fetch_single_product(session, Laptop)
+                printer = await ProductRepository.fetch_single_product(session, Printer)
 
                 if not (pc and laptop and printer):
                     raise HTTPException(status_code=404, detail="Insufficient products for special offers")
 
                 special_offers = [
-                    create_special_offer('PC + Printer', pc, printer),
-                    create_special_offer('Laptop + Printer', laptop, printer)
+                    UtilityService.create_special_offer('PC + Printer', pc, printer),
+                    UtilityService.create_special_offer('Laptop + Printer', laptop, printer)
                 ]
 
                 csv_file_path = "outputs/special_offers.csv"
