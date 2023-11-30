@@ -1,0 +1,17 @@
+# Version control
+.git/
+
+# Python cache and virtual environments
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+env/
+
+# Logs and databases
+*.log
+
+# System files
+.DS_Store
+Thumbs.db
