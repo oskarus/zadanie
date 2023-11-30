@@ -6,9 +6,10 @@ FROM base AS builder
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 
+WORKDIR /app
 COPY ./requirements.txt .
 RUN pip install --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --compile -r requirements.txt
 COPY ./app .
 
 # Development stage
