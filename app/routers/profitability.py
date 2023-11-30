@@ -11,6 +11,6 @@ async def get_products_profitability():
     return await ProfitabilityService.get_products_profitability()
 
 
-@router.get("/profitability/export-csv")
+@router.post("/profitability/export-csv")
 async def export_profitability_csv():
     return await ProfitabilityService.export_profitability_csv()
